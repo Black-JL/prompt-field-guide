@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt &amp; Context Engineering — A Field Guide</title>
+<style>
+  :root{
+    --paper:#faf9f6;          /* warm off-white */
+    --paper-card:#fffefb;
+    --ink:#1c1c1e;            /* near-black */
+    --body:#33312e;           /* warm reading ink */
+    --soft:#6b675f;
+    --muted:#9a958b;
+    --green:#2f6b4f;          /* restrained accent */
+    --green-deep:#245741;
+    --hair:#e7e3da;           /* hairline */
+    --hair-soft:#efece4;
+    --warn:#9a6a1a;
+    --bad:#a23a2c;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Charter,Georgia,Cambria,"Times New Roman",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"SF Mono",ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  body{margin:0;background:var(--paper);color:var(--body);
+       font-family:var(--serif);font-size:19px;line-height:1.72;font-feature-settings:"kern","liga";}
+
+  /* ---- top bar ---- */
+  .topbar{position:sticky;top:0;z-index:50;display:flex;justify-content:space-between;align-items:center;
+       padding:.75rem max(1.5rem,calc((100% - 720px)/2));
+       background:rgba(250,249,246,.82);backdrop-filter:saturate(180%) blur(14px);
+       border-bottom:1px solid var(--hair-soft);font-family:var(--sans);}
+  .topbar .tt{font-size:.82rem;font-weight:600;letter-spacing:.01em;color:var(--ink);}
+  .topbar .tt span{color:var(--muted);font-weight:400;}
+  .topbar .pdf{font-size:.8rem;font-weight:500;color:var(--green);text-decoration:none;border:1px solid var(--hair);
+       padding:.34rem .8rem;border-radius:100px;background:var(--paper-card);transition:.18s;cursor:pointer;}
+  .topbar .pdf:hover{border-color:var(--green);color:var(--green-deep);}
+
+  .wrap{max-width:720px;margin:0 auto;padding:0 1.5rem;}
+
+  /* ---- hero ---- */
+  header.hero{padding:5.5rem 0 2.5rem;border-bottom:1px solid var(--hair);margin-bottom:3rem;}
+  .eyebrow{font-family:var(--sans);font-size:.72rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--green);margin-bottom:1.4rem;}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(2.6rem,6vw,3.7rem);line-height:1.04;letter-spacing:-.02em;color:var(--ink);margin:0;}
+  .hero .sub{font-size:1.2rem;color:var(--soft);margin:1.3rem 0 0;max-width:34em;line-height:1.6;}
+
+  /* ---- contents ---- */
+  .contents{margin:0 0 1rem;}
+  .contents .lbl{font-family:var(--sans);font-size:.7rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;}
+  .contents ol{list-style:none;margin:0;padding:0;counter-reset:toc;
+       column-count:2;column-gap:2.5rem;}
+  .contents li{counter-increment:toc;break-inside:avoid;margin:0 0 .55rem;}
+  .contents a{font-family:var(--sans);font-size:.95rem;color:var(--body);text-decoration:none;display:flex;gap:.7rem;align-items:baseline;}
+  .contents a::before{content:counter(toc,decimal-leading-zero);font-size:.72rem;color:var(--muted);font-feature-settings:"tnum";min-width:1.4em;}
+  .contents a:hover{color:var(--green-deep);}
+
+  /* ---- sections ---- */
+  main{counter-reset:sec;}
+  h2{font-family:var(--serif);font-weight:500;font-size:1.9rem;letter-spacing:-.015em;color:var(--ink);
+     margin:4.2rem 0 1rem;scroll-margin-top:4rem;line-height:1.15;}
+  h2::before{counter-increment:sec;content:counter(sec,decimal-leading-zero);display:block;
+     font-family:var(--sans);font-size:.7rem;font-weight:600;letter-spacing:.22em;color:var(--green);margin-bottom:.7rem;}
+  h3{font-family:var(--serif);font-weight:600;font-size:1.22rem;color:var(--ink);margin:2rem 0 .4rem;letter-spacing:-.01em;}
+  p{margin:.9rem 0;}
+  a{color:var(--green);text-decoration:none;border-bottom:1px solid rgba(47,107,79,.28);transition:.15s;}
+  a:hover{border-bottom-color:var(--green);}
+  strong{font-weight:600;color:var(--ink);}
+  em{font-style:italic;}
+  .muted{color:var(--muted);font-size:.92rem;font-family:var(--sans);}
+  hr{border:none;border-top:1px solid var(--hair);margin:3.5rem 0;}
+
+  /* ---- CO-STAR-E letters ---- */
+  .letters{margin:1.8rem 0;}
+  .letter{display:grid;grid-template-columns:3rem 1fr;gap:1.4rem;padding:1.35rem 0;border-top:1px solid var(--hair-soft);align-items:start;}
+  .letter:last-child{border-bottom:1px solid var(--hair-soft);}
+  .letter .L{font-family:var(--serif);font-size:2.4rem;font-weight:300;color:var(--green);line-height:.9;}
+  .letter h4{font-family:var(--sans);margin:.3rem 0 .35rem;font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);font-weight:600;}
+  .letter h4 small{color:var(--muted);font-weight:400;letter-spacing:.04em;text-transform:none;}
+  .letter .def{color:var(--body);font-size:1.02rem;margin:0 0 .65rem;line-height:1.55;}
+  .letter .ex{font-family:var(--mono);font-size:.82rem;color:var(--green-deep);line-height:1.5;
+       background:rgba(47,107,79,.05);border-left:2px solid var(--green);padding:.55rem .8rem;border-radius:0 4px 4px 0;}
+
+  /* ---- copy-paste prompt cards ---- */
+  .promptbox{position:relative;margin:1.4rem 0;}
+  .promptbox pre{font-family:var(--mono);font-size:.83rem;line-height:1.62;background:var(--paper-card);
+       border:1px solid var(--hair);border-radius:10px;padding:1.15rem 1.2rem;overflow-x:auto;white-space:pre-wrap;
+       color:#2c3a32;margin:0;box-shadow:0 1px 2px rgba(40,30,10,.03);}
+  .copybtn{position:absolute;top:.6rem;right:.6rem;background:var(--paper);color:var(--soft);
+       border:1px solid var(--hair);border-radius:100px;font-family:var(--sans);font-size:.7rem;font-weight:600;
+       letter-spacing:.04em;padding:.28rem .7rem;cursor:pointer;opacity:0;transition:.16s;}
+  .promptbox:hover .copybtn{opacity:1;}
+  .copybtn:hover{border-color:var(--green);color:var(--green-deep);}
+  .copybtn.done{border-color:var(--green);color:#fff;background:var(--green);opacity:1;}
+
+  /* ---- minimal callouts ---- */
+  .callout{padding:.2rem 0 .2rem 1.2rem;border-left:2px solid var(--hair);margin:1.4rem 0;font-size:1.02rem;color:var(--body);}
+  .callout .ct{display:block;font-family:var(--sans);font-weight:600;font-size:.68rem;text-transform:uppercase;letter-spacing:.16em;color:var(--soft);margin-bottom:.4rem;}
+  .callout.note{border-color:var(--green);} .callout.note .ct{color:var(--green);}
+  .callout.tip{border-color:var(--green);} .callout.tip .ct{color:var(--green);}
+  .callout.warn{border-color:var(--warn);} .callout.warn .ct{color:var(--warn);}
+  .callout.imp{border-color:var(--bad);} .callout.imp .ct{color:var(--bad);}
+  .callout ul{margin:.4rem 0;padding-left:1.1rem;} .callout li{margin:.3rem 0;}
+
+  .fail h3{color:var(--bad);}
+
+  ul{margin:.7rem 0;padding-left:1.2rem;} li{margin:.35rem 0;}
+
+  .refs{font-size:.92rem;column-count:1;}
+  .refs p{margin:.55rem 0;color:var(--soft);line-height:1.5;}
+
+  footer{margin:5rem 0 4rem;padding-top:2rem;border-top:1px solid var(--hair);
+       font-family:var(--sans);font-size:.8rem;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+
+  /* ---- print / PDF ---- */
+  @media print{
+    @page{margin:0.7in;}
+    .topbar{display:none;} .copybtn{display:none;}
+    body{font-size:11.5pt;background:#fff;}
+    .wrap{max-width:none;padding:0;}
+    header.hero{padding:0 0 1.5rem;}
+    h2,h3{break-after:avoid;} .letter,.promptbox,.callout,.fail,.contents li{break-inside:avoid;}
+    .contents ol{column-count:2;}
+    a{color:var(--green-deep);border:none;}
+  }
+  @media(max-width:560px){
+    .contents ol{column-count:1;}
+    .topbar .tt span{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tt">Prompt &amp; Context Engineering <span>· Field Guide</span></div>
+  <button class="pdf" onclick="window.print()">Download PDF</button>
+</div>
+
+<div class="wrap">
+<header class="hero">
+  <div class="eyebrow">Foundations of Applied AI in Health Care</div>
+  <h1>Prompt &amp; Context Engineering</h1>
+  <p class="sub">A field guide and copy-paste toolkit from the AI Skills Lab. Keep it. Use the templates. Steal the prompts.</p>
+</header>
+
+<nav class="contents">
+  <div class="lbl">Contents</div>
+  <ol>
+    <li><a href="#costar">CO-STAR-E</a></li>
+    <li><a href="#template">Copy-paste templates</a></li>
+    <li><a href="#rco">RCO — the short version</a></li>
+    <li><a href="#reasoning">Add reasoning</a></li>
+    <li><a href="#temperature">Creative · Balanced · Precise</a></li>
+    <li><a href="#failures">Three failure modes</a></li>
+    <li><a href="#safety">What not to paste</a></li>
+    <li><a href="#context">The context window</a></li>
+    <li><a href="#judge">Use AI to evaluate AI</a></li>
+    <li><a href="#think">Think first, prompt second</a></li>
+    <li><a href="#refs">Sources</a></li>
+  </ol>
+</nav>
+
+<main>
+  <div class="callout note">
+    <span class="ct">The frame</span>
+    A prompt isn't a question — it's a <strong>program</strong>. You're programming a prediction engine with words. The more structure you give it, the better it predicts what you actually want. <span class="muted">— Jules White, Vanderbilt</span>
+  </div>
+
+  <h2 id="costar">CO-STAR-E</h2>
+  <p>Six letters plus an example. The same instinct as an OPORD or an SBAR — a checklist so you stop forgetting the parts that matter. Use every letter, including the ones you're tempted to skip.</p>
+
+  <div class="letters">
+    <div class="letter"><div class="L">C</div><div>
+      <h4>Context</h4>
+      <p class="def">The background the AI needs to answer well. Who's asking, what's the setting, what's already true.</p>
+      <div class="ex">"Night-shift charge nurse at a Level II trauma center, 14 beds occupied, two new admits…"</div>
+    </div></div>
+    <div class="letter"><div class="L">O</div><div>
+      <h4>Objective</h4>
+      <p class="def">The actual ask. The verb. What you want the AI to <em>do</em> — specifically, not generally.</p>
+      <div class="ex">"Draft an SBAR handoff note for the oncoming shift."</div>
+    </div></div>
+    <div class="letter"><div class="L">S</div><div>
+      <h4>Style</h4>
+      <p class="def">How it should read. Structure, length, formatting, vocabulary. The shape of the output.</p>
+      <div class="ex">"Bullet points under each SBAR heading. Under 200 words. Active voice."</div>
+    </div></div>
+    <div class="letter"><div class="L">T</div><div>
+      <h4>Tone <small>(or Persona)</small></h4>
+      <p class="def">The emotional register. Clinical or warm. Direct or diplomatic. Hedged or committed.</p>
+      <div class="ex">"Clinical. Direct. No hedging unless the data genuinely supports it."</div>
+    </div></div>
+    <div class="letter"><div class="L">A</div><div>
+      <h4>Audience</h4>
+      <p class="def">Who's reading. A patient. A specialist. A coder. A commander. Each pulls a different vocabulary.</p>
+      <div class="ex">"Oncoming charge nurse. Assume clinical fluency. No abbreviations they wouldn't know."</div>
+    </div></div>
+    <div class="letter"><div class="L">R</div><div>
+      <h4>Response</h4>
+      <p class="def">The format you want back. Paragraph. Table. JSON. Email. SBAR. A structured object you can paste straight into the chart.</p>
+      <div class="ex">"Output: four SBAR sections, one bullet list per section. Plain text. No preamble."</div>
+    </div></div>
+    <div class="letter"><div class="L">E</div><div>
+      <h4>Example</h4>
+      <p class="def">Show, don't tell. One or two examples of the kind of answer you want — often beats a paragraph of rules.</p>
+      <div class="ex">"Here's a handoff that worked: [paste]. Match this voice and structure."</div>
+    </div></div>
+  </div>
+  <p class="muted">CO-STAR-E adapted from Sheila Teo — winner of GovTech Singapore's first GPT-4 prompt-engineering competition (2023). The "E" is our addition.</p>
+
+  <h2 id="template">Copy-paste templates</h2>
+  <p>Paste this skeleton into any chat and fill the brackets. Labeling each section is the point — it forces you to supply every part.</p>
+  <div class="promptbox">
+    <button class="copybtn">Copy</button>
+<pre># CONTEXT
+[Who you are, the setting, what's already true.]
+
+# OBJECTIVE
+[The specific task. Use a verb — draft, summarize, compare, rewrite.]
+
+# STYLE
+[Structure, length, formatting, vocabulary.]
+
+# TONE
+[Clinical / warm. Direct / diplomatic. Hedged / committed.]
+
+# AUDIENCE
+[Who reads this, and what vocabulary they expect.]
+
+# RESPONSE
+[The exact output format you want back.]
+
+# EXAMPLE
+[Paste one example of a good answer: "Match this voice and structure."]</pre>
+  </div>
+
+  <p>The same prompt, worked through — the SBAR handoff from the lab:</p>
+  <div class="promptbox">
+    <button class="copybtn">Copy</button>
+<pre># CONTEXT
+Night-shift charge nurse at a Level II trauma center, 14 beds occupied, two new admits.
+
+# OBJECTIVE
+Draft an SBAR handoff note for the oncoming shift.
+
+# STYLE
+Bullet points under each SBAR heading. Under 200 words. Active voice.
+
+# TONE
+Clinical. Direct. No hedging unless the data genuinely supports it.
+
+# AUDIENCE
+Oncoming charge nurse. Assume clinical fluency. No abbreviations they wouldn't know.
+
+# RESPONSE
+Four SBAR sections, one bullet list per section. Plain text. No preamble.
+
+# EXAMPLE
+Here's a handoff that worked: [paste]. Match this voice and structure.</pre>
+  </div>
+  <div class="callout warn">
+    <span class="ct">Before you paste a real example</span>
+    De-identify it first. See <a href="#safety">What not to paste</a>.
+  </div>
+
+  <h2 id="rco">RCO — when CO-STAR-E is too much</h2>
+  <p>The minimum viable prompt. If you only have time for three letters, use these: <strong>Role, Context, Output.</strong> A specific role activates the right vocabulary; context fills gaps the model would otherwise invent; output saves you reformatting.</p>
+  <div class="promptbox">
+    <button class="copybtn">Copy</button>
+<pre>ROLE:    You are a [specific role — e.g., a clinical pharmacist].
+CONTEXT: [The setting, the data, the constraints it needs to know.]
+OUTPUT:  [Format, length, structure you want back.]</pre>
+  </div>
+  <p class="muted">"You are a clinical pharmacist" beats "you are an AI assistant." Specificity over generality.</p>
+
+  <h2 id="reasoning">Add reasoning</h2>
+  <p>Bolt this onto <em>any</em> prompt — a full CO-STAR-E prompt or a one-liner. Accuracy goes up and the reasoning becomes auditable, so you can see where it went wrong.</p>
+  <div class="promptbox">
+    <button class="copybtn">Copy</button>
+<pre>Walk me through your reasoning step by step, then conclude.</pre>
+  </div>
+
+  <h2 id="temperature">Creative · Balanced · Precise</h2>
+  <p>The toggle behind the chat box is "temperature" — how widely the model samples its next word. High is creative and surprising; low is precise and predictable. When your tool hides the dial, simulate it in words:</p>
+  <div class="promptbox">
+    <button class="copybtn">Copy</button>
+<pre>Be precise. Don't speculate.            ← low temperature
+Give me five different framings.        ← high temperature</pre>
+  </div>
+
+  <h2 id="failures">Three failure modes to guard against</h2>
+  <p>These are the ways a confident-sounding answer is wrong. Each has a tell and a fix.</p>
+
+  <div class="fail">
+    <h3>1 · Confidently plausible — hallucinated facts</h3>
+    <p>Citations, DOIs, drug interactions, and regulations are <strong>tokens to predict, not facts to retrieve</strong>. Plausible-looking is easier than true — and the format is so clean that readers stop checking. Ask a no-retrieval model for "three peer-reviewed papers with DOIs" and you'll get references that <em>look</em> perfect and don't exist.</p>
+    <div class="callout imp"><span class="ct">Fix</span>
+      Never trust an AI citation, number, or name you haven't clicked through and verified at the source. And explicitly give the model permission to say "I don't know" — Anthropic's simplest hallucination-reduction tip.</div>
+    <div class="promptbox"><button class="copybtn">Copy</button>
+<pre>If you are not certain, say "I don't know" rather than guessing.
+For any citation, give only sources you are confident exist, and
+flag anything you are inferring rather than recalling.</pre></div>
+  </div>
+
+  <div class="fail">
+    <h3>2 · The agreement machine — sycophancy</h3>
+    <p>Models are trained to be agreeable. Bake your conclusion into the prompt and it will defend it — then defend the opposite premise just as confidently. <em>"Don't you agree X?"</em> gets you a confirmation machine.</p>
+    <div class="callout imp"><span class="ct">Fix</span>
+      Strip your conclusion out of the prompt. Ask the neutral question instead:</div>
+    <div class="promptbox"><button class="copybtn">Copy</button>
+<pre>What does the evidence say about [topic]? Give me the strongest
+case on each side, then tell me where the weight of evidence falls.</pre></div>
+    <p class="muted">Documented at scale in Sharma et al. (2023), <em>Towards Understanding Sycophancy in Language Models.</em></p>
+  </div>
+
+  <div class="fail">
+    <h3>3 · It picks, it won't tell you — silent constraint-dropping</h3>
+    <p>When your instructions contradict each other — "two paragraphs" <em>and</em> "bullets throughout," "all 12 recommendations" <em>and</em> "under 100 words" — the model silently chooses which to honor and drops the rest. No question, no flag, just something that looks like an answer.</p>
+    <div class="callout imp"><span class="ct">Fix</span>
+      Audit your own prompt for contradictions before sending, then check the output against your constraint list item by item. The AI fails silently; you have to check loudly. You can also make it do the audit:</div>
+    <div class="promptbox"><button class="copybtn">Copy</button>
+<pre>Before you answer: list any constraints in my request that conflict
+with each other. If there are conflicts, ask me which to prioritize
+instead of guessing.</pre></div>
+    <p class="muted">The broader instruction-following failure is measured by IFEval (Zhou et al., 2023).</p>
+  </div>
+
+  <h2 id="safety">What not to paste</h2>
+  <div class="callout warn"><span class="ct">Protect the data</span>
+    <ul>
+      <li><strong>PHI</strong> — patient names, MRNs, DOBs, addresses, photos, anything that identifies a patient.</li>
+      <li><strong>PII</strong> — SSN, DOD ID, full names paired with sensitive data.</li>
+      <li><strong>CUI</strong> — controlled unclassified info: operational details, readiness data, anything marked.</li>
+    </ul>
+    De-identify before pasting: <em>"67-year-old male, CHF"</em> is fine; <em>"John Smith, MRN 4827193"</em> is not. If it's official Army work, route to <strong>Ask Sage / Army Enterprise LLM Workspace</strong> — not Copilot or ChatGPT.
+  </div>
+  <h3>When to start over</h3>
+  <p>If the AI is forgetting things, repeating itself, drifting off-topic, or contradicting earlier answers, you've saturated the context window. The fix is one click: <strong>a new chat is a clean slate.</strong> Summarize the prior thread in two sentences and start fresh. (Free consumer Gemini's ~32K-token window fills in about a 20-minute session.)</p>
+
+  <h2 id="context">The context window</h2>
+  <p>The "prompt" is only the visible tip. Below the waterline, the model also sees the system prompt, the full conversation history, attached files, tool outputs, retrieved documents, memory, and the budget reserved for its answer — all of it competing for a finite number of tokens. When the window fills, the oldest material falls off first.</p>
+  <div class="callout tip"><span class="ct">The rule — ABC</span>
+    <strong>Always Be Contexting.</strong> Never make the model fill in a gap you could have filled yourself. Curate what's below the waterline; don't dump. The smallest possible set of high-signal tokens wins.</div>
+
+  <h2 id="judge">Use AI to evaluate AI</h2>
+  <p>Run the same task two or three ways, then paste all of them into a fresh chat — ideally a <em>different</em> AI than the one that wrote them — and have it compare. This is itself a CO-STAR-E prompt: the framework all the way down.</p>
+  <div class="promptbox"><button class="copybtn">Copy</button>
+<pre># CONTEXT
+You are a critical reader evaluating several drafts of the same task.
+The drafts are prompts and their outputs, written by me.
+
+# OBJECTIVE
+Compare and contrast the rounds. For each, name what worked, what
+didn't, and the biggest change from the round before.
+
+# RESPONSE
+A short table: Round | What worked | What didn't | Biggest improvement.
+Then one paragraph: which round you'd ship, and why.
+
+# DATA
+[paste Round 1 prompt + output]
+[paste Round 2 prompt + output]
+[paste Round 3 prompt + output]</pre></div>
+
+  <h2 id="think">Think first, prompt second</h2>
+  <p>The AI can only be as clear as you are. Describe what you want <em>before</em> you open the AI, then red-team your own description — attack the gaps — and only then write the prompt.</p>
+  <div class="callout note"><span class="ct">Two cautions worth keeping</span>
+    "If you can't explain it clearly, you can't prompt it." <span class="muted">— Daniel Miessler</span><br>
+    "Using AI for your homework is like driving your car for exercise." <span class="muted">— Po-Shen Loh, CMU.</span> Generate ideas with excitement; destroy them with effort ("How could this be wrong?"). The few that survive are the diamonds.</div>
+
+  <hr>
+  <h2 id="refs">Sources</h2>
+  <div class="refs">
+    <p>Teo, S. (2023). <em>How I Won Singapore's GPT-4 Prompt Engineering Competition.</em> Towards Data Science. <a href="https://towardsdatascience.com/how-i-won-singapores-gpt-4-prompt-engineering-competition-34c195a93d41">link</a></p>
+    <p>Anthropic Applied AI Team (2025). <em>Effective Context Engineering for AI Agents.</em> <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">link</a></p>
+    <p>Anthropic (2025). <em>Reduce Hallucinations.</em> <a href="https://docs.anthropic.com/en/docs/test-and-evaluate/strengthen-guardrails/reduce-hallucinations">link</a></p>
+    <p>Sharma, M., et al. (2023). <em>Towards Understanding Sycophancy in Language Models.</em> arXiv:2310.13548. <a href="https://arxiv.org/abs/2310.13548">link</a></p>
+    <p>Zhou, J., et al. (2023). <em>Instruction-Following Evaluation for Large Language Models (IFEval).</em> arXiv:2311.07911. <a href="https://arxiv.org/abs/2311.07911">link</a></p>
+    <p>White, J. (2023). <em>Prompt Engineering for ChatGPT.</em> Vanderbilt University on Coursera. <a href="https://www.coursera.org/learn/prompt-engineering">link</a></p>
+    <p>Miessler, D. (2024). <em>AI Is Mostly Prompting.</em> Unsupervised Learning. <a href="https://newsletter.danielmiessler.com/p/ai-is-mostly-prompting">link</a></p>
+    <p>Loh, P.-S. (2025). <em>The Only Trait for Success in the AI Era.</em> Carnegie Mellon. <a href="https://www.youtube.com/watch?v=xWYb7tImErI">link</a></p>
+    <p>Ask Sage / U.S. Army (2025). <em>Army Launches Enterprise LLM Workspace.</em> <a href="https://www.army.mil/article/285537/">link</a></p>
+  </div>
+
+  <footer>
+    <span>Dr. Jared L. Black · Army-Baylor / MEDCoE</span>
+    <span>Foundations of Applied AI in Health Care</span>
+  </footer>
+</main>
+</div>
+
+<script>
+  document.querySelectorAll('.copybtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var pre = btn.parentNode.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function(){
+        var old = btn.textContent;
+        btn.textContent = 'Copied'; btn.classList.add('done');
+        setTimeout(function(){ btn.textContent = old; btn.classList.remove('done'); }, 1400);
+      });
+    });
+  });
+</script>
+</body>
+</html>
