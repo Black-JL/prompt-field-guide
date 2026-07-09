@@ -128,6 +128,14 @@
     .contents ol{column-count:1;}
     .topbar .tt span{display:none;}
   }
+
+  /* ---- license footer ---- */
+  .license{margin:2.5rem 0 4rem;padding-top:1.4rem;border-top:1px solid var(--hair);
+       font-family:var(--sans);font-size:.8rem;line-height:1.55;color:var(--muted);}
+  .license p{margin:.3rem 0;}
+  .license a{color:var(--green);border-bottom:1px solid rgba(47,107,79,.28);}
+  .license a:hover{border-bottom-color:var(--green);}
+  @media print{ .license{display:block;} .license a{color:var(--green-deep);border:none;} }
 </style>
 </head>
 <body>
@@ -387,6 +395,11 @@ Then one paragraph: which round you'd ship, and why.
     <span>Dr. Jared L. Black · Army-Baylor / MEDCoE</span>
     <span>Foundations of Applied AI in Health Care</span>
   </footer>
+
+  <div class="license">
+    <p>&copy; 2026 Jared Black &middot; Prompt &amp; Context Engineering — A Field Guide</p>
+    <p>Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons Attribution 4.0 International (CC BY 4.0)</a>. You are free to share and adapt this material with attribution.</p>
+  </div>
 </main>
 </div>
 
